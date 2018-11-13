@@ -1,5 +1,9 @@
 import numpy as np
 
+def rand_real(n=1):
+	m = sys.maxint
+	np.random.uniform(-m, m, n)
+
 def rand_normal(loc=0.0, scale=1.0, size=None):
     return np.random.normal(loc, scale, size)
 

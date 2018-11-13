@@ -1,17 +1,19 @@
 import math
 import numpy as np
+import sys
 
 from abc import ABCMeta, abstractmethod
 
 class Function:
     __metaclass__ = ABCMeta
-
+    dim = 1
+    
     @abstractmethod
     def eval(self, X): pass
     
     def __init__(self, dim):
         self.dim = dim
-        self.domain = {'lower': -math.inf, 'upper': math.inf}
+        self.domain = {'lower': -1000, 'upper': 1000}
     
     def feasible(self, X):
         for i in range(self.dim):
@@ -35,8 +37,11 @@ class Diff2Function:
         return np.linalg.det(self.hessian(X))
 
 class QuadraticFunction(Function, DiffFunction, Diff2Function):
-    dim = 1
-    
+    def __init__(self, dim):
+        self.dim = dim
+        self.domain = {'lower': -10, 'upper': 10}
+        self.optimal = 0
+
     def eval(self, X):
         e = 0
         
@@ -64,8 +69,10 @@ class QuadraticFunction(Function, DiffFunction, Diff2Function):
         return hess
 
 class RastriginFunction(Function, DiffFunction, Diff2Function):
-    dim = 1
-    domain = {'lower': -5.12, 'upper': 5.12}
+    def __init__(self, dim):
+        self.dim = dim
+        self.domain = {'lower': -5.12, 'upper': 5.12}
+        self.optimal = 0
 
     def eval(self, X):
         e = 10 * self.dim
@@ -93,7 +100,6 @@ class RastriginFunction(Function, DiffFunction, Diff2Function):
         return hess
 
 class GriewankFunction(Function, DiffFunction, Diff2Function):
-    dim = 1
     domain = {'lower': -600, 'upper': 600}
 
     def eval(self, X):
@@ -145,7 +151,6 @@ class GriewankFunction(Function, DiffFunction, Diff2Function):
         return hess
 
 class RosenbrockFunction(Function, DiffFunction, Diff2Function):
-    dim = 1
     domain = {'lower': -2048, 'upper': 2048}
 
     def eval(self, X):
@@ -199,8 +204,8 @@ class RosenbrockFunction(Function, DiffFunction, Diff2Function):
         return hess
 
 class SchwefelFunction(Function):
-    dim = 1
-    lower = 500
+    domain = {'lower': -500, 'upper': 500}
+
     def eval(self, X):
         suma = 0
         
