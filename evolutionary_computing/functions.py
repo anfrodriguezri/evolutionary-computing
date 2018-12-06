@@ -78,14 +78,14 @@ class RastriginFunction(Function, DiffFunction, Diff2Function):
         e = 10 * self.dim
         
         for i in range(self.dim):
-            e += (X[i]**2) - 10 * math.cos(2 * PI * X[i])
+            e += (X[i]**2) - 10 * math.cos(2 * np.pi * X[i])
         
         return e
         
     def gradient(self, X):
         grad = np.zeros(self.dim)
         for i in range(self.dim):
-            grad[i] = 2 * ( X[i] + 10 * PI * math.sin(2*PI*X[i]) )
+            grad[i] = 2 * ( X[i] + 10 * np.pi * math.sin(2*np.pi*X[i]) )
         
         return grad
 
@@ -95,7 +95,7 @@ class RastriginFunction(Function, DiffFunction, Diff2Function):
         for i in range(self.dim):
             for j in range(self.dim):
                 if i == j:
-                    hess[i][j] = 2 * ( 1 + 20 * (PI**2) * math.cos(2*PI*X[i]) )
+                    hess[i][j] = 2 * ( 1 + 20 * (np.pi**2) * math.cos(2*np.pi*X[i]) )
                                                                                   
         return hess
 
@@ -220,4 +220,4 @@ class SchwefelFunction(Function):
                 return False
         return True
 
-
+class SinFunction(Function):

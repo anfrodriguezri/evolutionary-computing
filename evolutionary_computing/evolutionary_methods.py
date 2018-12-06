@@ -68,6 +68,9 @@ class RealValuedIndividual(Individual):
 
 		return [bin_repr[i:i+num_bits] for i in range(0, len(bin_repr), num_bits)]
 
+	def distance(self, ind_2):
+		return np.linalg.norm( np.asarray(self.value) - np.asarray(ind_2.value) )
+
 class Population:
 	def __init__(self, n, ind_class, function):
 		self.individuals = []
@@ -82,6 +85,9 @@ class Population:
 
 	def __getitem__(self, i):
 		return self.individuals[i]
+
+	def __setitem__(self, key, item):
+		self.individuals[key] = item
 
 	def __len__(self):
 		return len(self.individuals)
@@ -115,10 +121,11 @@ class GeneticAlgorithm:
 		self.fitness_func = fitness_func
 		self.ind_class = ind_class
 		self.selection_meth = selection_meth
-		self.population_size = population_size
 		self.max_iter = max_iter
 		self.inequality_op = inequality_op
 		self.epsilon = epsilon
+
+		self.population = Population(population_size, self.ind_class, self.fitness_func)
 
 	def generateOffspring(self, parents):
 		num_children = len(parents)
@@ -142,6 +149,8 @@ class GeneticAlgorithm:
 
 		for i in range(num_children):
 			children[i].bin_repr = new_chromosomes[i]
+			children[i].decode_value()
+			children[i].fitness = self.fitness_func.eval(children[i].value)
 
 		return children
 
@@ -151,14 +160,100 @@ class GeneticAlgorithm:
 		
 		for t in range(self.max_iter):
 			best = population.get_best(self.fitness_func, self.inequality_op)
-			print( population )
+			#print( population )
 
 			if best.fitness - self.fitness_func.optimal < self.epsilon:
 				return t, best
 
 
 			parents = self.selection_meth.select(2, population)
-			print( parents )
+			
 			children = self.generateOffspring(parents)
 
+			print(parents)
+			print(children)
 
+
+class DeterministicCrowding(GeneticAlgorithm):
+	def replace(self, parent, children):
+		if( self.inequality_op(children.fitness, parent.fitness) ):
+			self.population[parent.idx] = children
+
+	def run(self):
+		best = None	
+		for t in range(self.max_iter):
+			best = self.population.get_best(self.fitness_func, self.inequality_op)
+			print(best.fitness)
+			#print( population )
+
+			if best.fitness - self.fitness_func.optimal < self.epsilon:
+				return t, best
+
+
+			parents = self.selection_meth.select(2, self.population)
+			children = self.generateOffspring(parents)
+
+			combination_1 = parents[0].distance(children[0]) + parents[1].distance(children[1])
+			combination_2 = parents[0].distance(children[1]) + parents[1].distance(children[0])
+
+			if combination_1 < combination_2:
+				self.replace(parents[0], children[0])
+				self.replace(parents[1], children[1])
+			else:
+				self.replace(parents[0], children[1])
+				self.replace(parents[1], children[0])
+
+		return best
+			
+
+class Sharing(GeneticAlgorithm):
+	def get_best(self, fitness_func):
+		self.best = self.individuals[0]
+		self.fitness = 0
+		
+		for individual in self.individuals:
+			if individual.fitness is None:
+				individual.fitness = fitness_func.eval(individual.value)
+
+			self.fitness += individual.fitness
+
+			if inequality_op(individual.fitness, self.best.fitness):
+				self.best = individual
+
+		self.avg_fitness = self.fitness / len(self)
+
+		return self.best
+
+	def replace(self, parent, children):
+		if( self.inequality_op(children.fitness, parent.fitness) ):
+			self.population[parent.idx] = children
+
+	def sharing_selection(self, sigma):
+		for ind_0 in self.population:
+			fitness = self.fitness_func(ind_0)
+			count_sigma = 0
+			for ind_i in self.population:
+				if ind_0 != ind_i and ind_0.distance(ind_i) < sigma:
+					count_sigma += 1
+
+			if count_sigma > 0:
+				ind_0.fitness = fitness / count_sigma
+
+		return sorted(self.population, key = lambda x: x.fitness, reversed = True)[:2]
+
+	def run(self):
+		best = None
+		sigma = 0.02
+
+		for t in range(self.max_iter):
+			best = self.get_best(self.fitness_func)
+			print(best.fitness)
+			#print( population )
+
+			parents = self.sharing_selection(2, self.population)
+			children = self.generateOffspring(parents)
+
+			self.replace(parents[0], children[0])
+			
+
+		return best
